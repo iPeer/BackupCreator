@@ -6,19 +6,36 @@
 
 package com.simple.ipeer.bc.gui;
 
+import com.simple.ipeer.bc.files.BackupFile;
+
 /**
  *
  * @author iPeer
  */
 public class EntrySettingsGUI extends javax.swing.JDialog {
+       
+    private BackupFile file;
+    private ConfigGUI gui;
+    private int row;
+    private boolean custom = false;
 
     /**
      * Creates new form EntrySettingsGUI
      */
-    public EntrySettingsGUI(java.awt.Frame parent, boolean modal) {
-	super(parent, modal);
+    
+    public EntrySettingsGUI(BackupFile b, ConfigGUI gui, int row, boolean custom) {
+	this.file = b;
+	this.gui = gui;
+	this.row = row;
+	this.custom = custom;
 	initComponents();
-    }
+	entryPath.setText(b.path());
+	backupPlace.setText(b.backupPath());
+	if (b.isFile())
+	    extensionsList.setEditable(false);
+	else
+	    extensionsList.setText(b.extensions());
+    }    
 
     /**
      * This method is called from within the constructor to initialize the form. WARNING: Do NOT modify this code. The content of this method is
@@ -35,9 +52,11 @@ public class EntrySettingsGUI extends javax.swing.JDialog {
         extensionsList = new javax.swing.JTextField();
         addEntryButton = new javax.swing.JButton();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Backup Entry Editor");
         setResizable(false);
+
+        entryPath.setEditable(false);
 
         jLabel1.setText("Back this entry up in...");
 
@@ -47,6 +66,11 @@ public class EntrySettingsGUI extends javax.swing.JDialog {
         jLabel2.setToolTipText("Seperate each extension with a semi-colon. Leave blank to back up all files.");
 
         addEntryButton.setText("Add");
+        addEntryButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                addEntryButtonActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -89,54 +113,23 @@ public class EntrySettingsGUI extends javax.swing.JDialog {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-	/* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-	 * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-	 */
-	try {
-	    for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-		if ("Nimbus".equals(info.getName())) {
-		    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-		    break;
-		}
-	    }
-	} catch (ClassNotFoundException ex) {
-	    java.util.logging.Logger.getLogger(EntrySettingsGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	} catch (InstantiationException ex) {
-	    java.util.logging.Logger.getLogger(EntrySettingsGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	} catch (IllegalAccessException ex) {
-	    java.util.logging.Logger.getLogger(EntrySettingsGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	} catch (javax.swing.UnsupportedLookAndFeelException ex) {
-	    java.util.logging.Logger.getLogger(EntrySettingsGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	}
-        //</editor-fold>
+    private void addEntryButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addEntryButtonActionPerformed
+	BackupFile bp = new BackupFile(this.file.path(), this.file.isFile(), extensionsList.getText(), backupPlace.getText().replaceAll("<backupdir>", ""));
+	if (!this.gui.fileList.isEmpty() && !this.custom)
+	    this.gui.fileList.remove(this.row);
+	this.gui.fileList.add(this.row, bp);
+	this.gui.updateTable();
+	this.dispose();
+    }//GEN-LAST:event_addEntryButtonActionPerformed
 
-	/* Create and display the dialog */
-	java.awt.EventQueue.invokeLater(new Runnable() {
-	    public void run() {
-		EntrySettingsGUI dialog = new EntrySettingsGUI(new javax.swing.JFrame(), true);
-		dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-		    @Override
-		    public void windowClosing(java.awt.event.WindowEvent e) {
-			System.exit(0);
-		    }
-		});
-		dialog.setVisible(true);
-	    }
-	});
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton addEntryButton;
-    private javax.swing.JTextField backupPlace;
-    private javax.swing.JTextField entryPath;
-    private javax.swing.JTextField extensionsList;
+    public javax.swing.JTextField backupPlace;
+    public javax.swing.JTextField entryPath;
+    public javax.swing.JTextField extensionsList;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     // End of variables declaration//GEN-END:variables
+
 }
