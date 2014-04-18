@@ -114,6 +114,7 @@ public class FileFinder {
 		else
 		    System.out.println("("+fileNum+++"/"+this.FILE_COUNT+", "+readableFileSize(sizeCopied)+" of "+readableFileSize(this.FILE_SIZE)+") "+f.getPath());
 	    }
+	    s.close();
 	} catch (FileNotFoundException ex) {	}
 	if (!this.nogui) {
 	    g.statusText.setText("Backup complete. Ready for next instruction.");
