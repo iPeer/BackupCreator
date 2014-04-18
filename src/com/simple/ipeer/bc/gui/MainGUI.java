@@ -151,9 +151,9 @@ public class MainGUI extends javax.swing.JFrame {
 	cfg.setLocationRelativeTo(this);
 	cfg.setVisible(true);
     }//GEN-LAST:event_createConfigButtonActionPerformed
-
+    
     private void createButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createButtonActionPerformed
-        final MainGUI mgui = this;
+	final MainGUI mgui = this;
 	final String config = jComboBox1.getSelectedItem().toString();
 	this.fileFinder = new FileFinder(mgui);
 	if (config.equals("") || config == null) { return; }
@@ -167,13 +167,14 @@ public class MainGUI extends javax.swing.JFrame {
 		}
 	).start();
     }//GEN-LAST:event_createButtonActionPerformed
-
+    
     private void stopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopButtonActionPerformed
-        fileFinder.CONTINUE_BACKUP = false;
+	fileFinder.CONTINUE_BACKUP = false;
     }//GEN-LAST:event_stopButtonActionPerformed
-
+    
     private void closeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeButtonActionPerformed
-        fileFinder.CONTINUE_BACKUP = false;
+	if (fileFinder != null)
+	    fileFinder.CONTINUE_BACKUP = false;
 	this.dispose();
     }//GEN-LAST:event_closeButtonActionPerformed
     
@@ -205,15 +206,33 @@ public class MainGUI extends javax.swing.JFrame {
 	//</editor-fold>
 	
 	/* Create and display the form */
-	java.awt.EventQueue.invokeLater(new Runnable() {
-	    @Override
-	    public void run() {
-		MainGUI gui = new MainGUI();
-		gui.setLocationRelativeTo(null);
-		gui.updateConfigList();
-		gui.setVisible(true);
+	String config = "";
+	boolean noGUI = false;
+	if (args.length > 0) {
+	    for (String a : args) {
+		if (a.equals("-nogui"))
+		    noGUI = true;
+		if (a.startsWith("-config="))
+		    config = a.split("=")[1];
 	    }
-	});
+	    if (noGUI && (config != null && !config.equals(""))) {
+		FileFinder ff = new FileFinder(true);
+		ff.startBackup(config);
+		ff.performBackup();
+	    }
+	    
+	}
+	else {
+	    java.awt.EventQueue.invokeLater(new Runnable() {
+		@Override
+		public void run() {
+		    MainGUI gui = new MainGUI();
+		    gui.setLocationRelativeTo(null);
+		    gui.updateConfigList();
+		    gui.setVisible(true);
+		}
+	    });
+	}
     }
     
     public void updateConfigList() {

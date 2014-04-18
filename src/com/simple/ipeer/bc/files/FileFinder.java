@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,37 +27,54 @@ public class FileFinder {
     
     private final ArrayList<BackupFile> fileList = new ArrayList<BackupFile>();
     
-    private final MainGUI mGUI;
+    private MainGUI mGUI = null;
     private Config cfg;
     public volatile boolean CONTINUE_BACKUP = true;
     private int FILE_COUNT = 0;
-
+    private long FILE_SIZE = 0L;
+    
+    private boolean nogui = false;
+    
     public FileFinder(MainGUI gui) {
 	this.mGUI = gui;
+    }
+    
+    public FileFinder(boolean noGUI) {
+	this.nogui = noGUI;
     }
     
     public void startBackup(String configName) {
 	try {
 	    this.cfg = Config.loadConfig(configName);
-	    MainGUI g = this.mGUI;
 	    File f = new File(cfg.CONFIG_NAME+".flist");
 	    if (f.exists())
 		f.delete();
-	    g.jProgressBar1.setIndeterminate(true);
-	    g.jComboBox1.setEnabled(false);
-	    g.stopButton.setEnabled(true);
-	    g.createButton.setEnabled(false);
-	    g.statusText.setText("Generating file list...");
+	    MainGUI g = null;
+	    if (!this.nogui) {
+		g = this.mGUI;
+		g.jProgressBar1.setIndeterminate(true);
+		g.jComboBox1.setEnabled(false);
+		g.stopButton.setEnabled(true);
+		g.createButton.setEnabled(false);
+		g.statusText.setText("Generating file list...");
+	    }
+	    else { System.out.println("Generating file list..."); }
 	    generateFileList();
-	    g.jProgressBar1.setIndeterminate(false);
+	    if (!this.nogui)
+		g.jProgressBar1.setIndeterminate(false);
 	    if (!this.CONTINUE_BACKUP) {
-		g.statusText.setText("Cancelled by user.");
-	    	g.createButton.setEnabled(true);
-		g.stopButton.setEnabled(false);
-		g.jComboBox1.setEnabled(true);
+		if (!this.nogui) {
+		    g.statusText.setText("Cancelled by user.");
+		    g.createButton.setEnabled(true);
+		    g.stopButton.setEnabled(false);
+		    g.jComboBox1.setEnabled(true);
+		}
 	    }
 	    else
-		g.statusText.setText(this.FILE_COUNT+" files ready for backup.");
+		if (!this.nogui)
+		    g.statusText.setText(this.FILE_COUNT+" files ready for backup.");
+		else
+		    System.out.println(this.FILE_COUNT+" files to back up.");
 	} catch (IOException ex) {
 	    Logger.getLogger(FileFinder.class.getName()).log(Level.SEVERE, null, ex);
 	}
@@ -64,30 +82,49 @@ public class FileFinder {
     
     public void performBackup() {
 	MainGUI g = this.mGUI;
-	if (!this.CONTINUE_BACKUP) { g.statusText.setText("Cancelled by user."); return; }
-	g.statusText.setText("Backing up files...");
-	g.jProgressBar1.setMaximum(FILE_COUNT);
-	g.jProgressBar1.setIndeterminate(false);
-	g.jProgressBar1.setValue(0);
-	g.jProgressBar1.setStringPainted(true);
+	if (!this.CONTINUE_BACKUP) { if (!this.nogui) { g.statusText.setText("Cancelled by user."); } return; }
+	if (!this.nogui) {
+	    g.statusText.setText("Backing up files...");
+	    g.jProgressBar1.setMaximum(FILE_COUNT);
+	    g.jProgressBar1.setIndeterminate(false);
+	    g.jProgressBar1.setValue(0);
+	    g.jProgressBar1.setStringPainted(true);
+	}
+	else
+	    System.out.println("Backing up files...");
 	try {
 	    Scanner s = new Scanner(new File(cfg.CONFIG_NAME+".flist"));
+	    int fileNum = 1;
+	    long sizeCopied = 0L;
 	    while (s.hasNext() && this.CONTINUE_BACKUP) {
-		g.jProgressBar1.setString((g.jProgressBar1.getValue() + 1)+"/"+g.jProgressBar1.getMaximum());
+		if (!this.nogui)
+		    g.jProgressBar1.setString((g.jProgressBar1.getValue() + 1)+"/"+g.jProgressBar1.getMaximum());
 		String[] line = s.nextLine().split("\\|");
 		Path old = new File(line[0]).toPath();
 		Path _new = new File(line[2]).toPath();
-		new File(_new.toFile().getPath()).mkdirs();
+		File fs = old.toFile();
+		sizeCopied += fs.length();
+		File f = new File(_new.toFile().getPath());
+		f.mkdirs();
 		try {
 		    Files.copy(old, _new, StandardCopyOption.REPLACE_EXISTING);
 		} catch (IOException e) { if (cfg.FAILURE_METHOD == 1) { break; } }
-		g.jProgressBar1.setValue(g.jProgressBar1.getValue() + 1);
+		if (!this.nogui)
+		    g.jProgressBar1.setValue(g.jProgressBar1.getValue() + 1);
+		else
+		    System.out.println("("+fileNum+++"/"+this.FILE_COUNT+", "+readableFileSize(sizeCopied)+" of "+readableFileSize(this.FILE_SIZE)+") "+f.getPath());
 	    }
 	} catch (FileNotFoundException ex) {	}
-	g.statusText.setText("Backup complete. Ready for next instruction.");
-	g.createButton.setEnabled(true);
-	g.stopButton.setEnabled(false);
-	g.jComboBox1.setEnabled(true);
+	if (!this.nogui) {
+	    g.statusText.setText("Backup complete. Ready for next instruction.");
+	    g.createButton.setEnabled(true);
+	    g.stopButton.setEnabled(false);
+	    g.jComboBox1.setEnabled(true);
+	}
+	else {
+	    System.out.println("Backup Complate.");
+	    System.exit(0);
+	}
 	File f = new File(cfg.CONFIG_NAME+".flist");
 	if (!f.delete())
 	    f.deleteOnExit();
@@ -103,12 +140,21 @@ public class FileFinder {
 	for (Iterator<BackupFile> it = this.cfg.fileList.iterator(); it.hasNext();) {
 	    
 	    BackupFile bf = it.next();
-	    if (new File(bf.path()).isFile())
+	    if (new File(bf.path()).isFile()) {
 		files.add(bf);
+	    }
 	    else {
 		getFiles(bf.path(), new File(bf.path()), files, bf.backupPath(), bf.extensions(), btPath);
-	    }      
+	    }
 	}
+    }
+    
+    // Not my code
+    public String readableFileSize(long size) {
+	if(size <= 0) return "0";
+	final String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
+	int digitGroups = (int) (Math.log10(size)/Math.log10(1024));
+	return new DecimalFormat("#,##0.#").format(size/Math.pow(1024, digitGroups)) + " " + units[digitGroups];
     }
     
     private void getFiles(String fPath, File in, ArrayList<BackupFile> files, String bPath, String extensions, String toPath) {
@@ -123,9 +169,10 @@ public class FileFinder {
 		if (!(extensions.equals("*.*") || ext.equals("::NOEXT::")) && !Arrays.asList(extensions.split(";")).contains(ext)) { continue; }
 		String sPath = toPath+bPath+f.getAbsolutePath().substring(f.getAbsolutePath().indexOf(fPath) + fPath.length());
 		BackupFile bf2 = new BackupFile(f.getAbsolutePath(), true, "*.*", sPath);
-		try { 
+		try {
 		    writeToFile(bf2);
 		    this.FILE_COUNT++;
+		    this.FILE_SIZE += new File(bf2.path()).length();
 		} catch (IOException ex) {
 		    Logger.getLogger(FileFinder.class.getName()).log(Level.SEVERE, null, ex);
 		}
@@ -152,5 +199,5 @@ public class FileFinder {
 	fw.flush();
 	fw.close();
     }
-
+    
 }
