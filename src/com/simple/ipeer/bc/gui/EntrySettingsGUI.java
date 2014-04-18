@@ -114,10 +114,16 @@ public class EntrySettingsGUI extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void addEntryButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addEntryButtonActionPerformed
-	BackupFile bp = new BackupFile(this.file.path(), this.file.isFile(), extensionsList.getText(), backupPlace.getText().replaceAll("<backupdir>", ""));
+	String bPath = backupPlace.getText();
+	if (!bPath.startsWith(System.getProperty("file.separator")))
+	    bPath = System.getProperty("file.separator")+bPath;
+	BackupFile bp = new BackupFile(this.file.path(), this.file.isFile(), extensionsList.getText(), bPath);
 	if (!this.gui.fileList.isEmpty() && !this.custom)
 	    this.gui.fileList.remove(this.row);
-	this.gui.fileList.add(this.row, bp);
+	if (!this.custom)
+	    this.gui.fileList.add(this.row, bp);
+	else
+	    this.gui.fileList.add(bp);
 	this.gui.updateTable();
 	this.dispose();
     }//GEN-LAST:event_addEntryButtonActionPerformed

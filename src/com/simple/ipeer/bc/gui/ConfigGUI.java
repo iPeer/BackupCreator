@@ -6,6 +6,7 @@
 
 package com.simple.ipeer.bc.gui;
 
+import com.simple.ipeer.bc.config.Config;
 import com.simple.ipeer.bc.files.BackupFile;
 import java.awt.Color;
 import java.awt.Component;
@@ -13,9 +14,14 @@ import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.event.DocumentEvent;
@@ -29,12 +35,17 @@ import javax.swing.table.DefaultTableModel;
 public class ConfigGUI extends javax.swing.JDialog {
     
     public ArrayList<BackupFile> fileList = new ArrayList<BackupFile>();
+    private final MainGUI mGUI;
+    private String LOADED_CONFIG = "";
+    private int LOADED_CONFIG_ID = 0;
     
     /**
      * Creates new form ConfigGUI
      */
-    public ConfigGUI() {
+    public ConfigGUI(MainGUI mainGUI) {
+	this.mGUI = mainGUI;
 	initComponents();
+	updateConfigList();
 	customPath.getDocument().addDocumentListener(new DocumentListener() {
 	    @Override
 	    public void changedUpdate(DocumentEvent e) {
@@ -105,7 +116,7 @@ public class ConfigGUI extends javax.swing.JDialog {
             };
         };
         jLabel3 = new javax.swing.JLabel();
-        jTextField2 = new javax.swing.JTextField();
+        backupTo = new javax.swing.JTextField();
         backupLocationSelect = new javax.swing.JButton();
 
         editEntry.setText("Edit Entry");
@@ -129,10 +140,27 @@ public class ConfigGUI extends javax.swing.JDialog {
 
         jLabel1.setText("Load existing config");
 
-        cancelButton.setText("Cancel");
+        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Create New Config" }));
+        jComboBox1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jComboBox1ActionPerformed(evt);
+            }
+        });
+
+        cancelButton.setText("Close");
         cancelButton.setToolTipText("");
+        cancelButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cancelButtonActionPerformed(evt);
+            }
+        });
 
         saveButton.setText("Save Config");
+        saveButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveButtonActionPerformed(evt);
+            }
+        });
 
         addFolderButton.setText("Add Folder");
         addFolderButton.addActionListener(new java.awt.event.ActionListener() {
@@ -222,6 +250,9 @@ public class ConfigGUI extends javax.swing.JDialog {
 
         jLabel3.setText("Save backup to...");
 
+        backupTo.setText("."+System.getProperty("file.separator")
+        );
+
         backupLocationSelect.setText("...");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -264,7 +295,7 @@ public class ConfigGUI extends javax.swing.JDialog {
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jLabel3)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jTextField2)
+                                .addComponent(backupTo)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(backupLocationSelect, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(0, 474, Short.MAX_VALUE)))
@@ -297,7 +328,7 @@ public class ConfigGUI extends javax.swing.JDialog {
                 .addGap(16, 16, 16)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel3)
-                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(backupTo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(backupLocationSelect))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -314,7 +345,7 @@ public class ConfigGUI extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
     
     private void failBehaviorComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_failBehaviorComboActionPerformed
-	// TODO add your handling code here:
+	
     }//GEN-LAST:event_failBehaviorComboActionPerformed
     
     private void addFolderButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addFolderButtonActionPerformed
@@ -324,7 +355,7 @@ public class ConfigGUI extends javax.swing.JDialog {
     private void addFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addFileButtonActionPerformed
 	showFileSelectionDialog(false);
     }//GEN-LAST:event_addFileButtonActionPerformed
-
+    
     private void editEntryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_editEntryActionPerformed
 	Component source = (Component)evt.getSource();
 	JPopupMenu menu = (JPopupMenu)source.getParent();
@@ -335,18 +366,18 @@ public class ConfigGUI extends javax.swing.JDialog {
 	gui.setLocationRelativeTo(this);
 	gui.setVisible(true);
     }//GEN-LAST:event_editEntryActionPerformed
-
+    
     private void deleteEntryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteEntryActionPerformed
-        Component source = (Component)evt.getSource();
+	Component source = (Component)evt.getSource();
 	JPopupMenu menu = (JPopupMenu)source.getParent();
 	JTable table = (JTable)menu.getInvoker();
 	int row = table.getSelectedRow();
 	fileList.remove(row);
 	updateTable();
     }//GEN-LAST:event_deleteEntryActionPerformed
-
+    
     private void addCustomButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addCustomButtonActionPerformed
-        File f = new File(customPath.getText());
+	File f = new File(customPath.getText());
 	if (!(f.isDirectory() || f.exists())) { return; }
 	if (!f.isFile() && !customPath.getText().endsWith(System.getProperty("file.separator")))
 	    customPath.setText(customPath.getText()+System.getProperty("file.separator"));
@@ -356,6 +387,82 @@ public class ConfigGUI extends javax.swing.JDialog {
 	gui.setVisible(true);
     }//GEN-LAST:event_addCustomButtonActionPerformed
     
+    private void cancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelButtonActionPerformed
+	this.mGUI.updateConfigList();
+	this.dispose();
+    }//GEN-LAST:event_cancelButtonActionPerformed
+    
+    private void saveButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveButtonActionPerformed
+	String name = this.LOADED_CONFIG;
+	String overwriteMessage = "Overwrite existing version of this config?";
+	if (this.LOADED_CONFIG.equals("")) {
+	    name = JOptionPane.showInputDialog("Input a name for this config");
+	    if (name == null) { return; } // Cancel button
+	    if (name.equals("")) {
+		JOptionPane.showMessageDialog(this, "You must provide a name in order to save a config.", "Error", JOptionPane.ERROR_MESSAGE);
+		saveButtonActionPerformed(evt);
+	    }
+	    overwriteMessage = "A config with this name already exists, do you want to overwrite it?";
+	}
+	Config cfg = new Config(name, new File(backupTo.getText()), failBehaviorCombo.getSelectedIndex(), logWhatCombo.getSelectedIndex(), fileList);
+	if (!cfg.exists() || (cfg.exists() && JOptionPane.showConfirmDialog(this, overwriteMessage, "Confirm overwrite", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)) {
+	    try {
+		cfg.saveConfig(name, true);
+		updateConfigList();
+	    } catch (IOException e) { JOptionPane.showMessageDialog(this, "An error occured while trying to save the config.\n"+e.getMessage(), "Error!", JOptionPane.ERROR_MESSAGE); }
+	    this.LOADED_CONFIG = name;
+	    DefaultComboBoxModel dm = (DefaultComboBoxModel)jComboBox1.getModel();
+	    for (int x = 0; x < jComboBox1.getItemCount(); x++) {
+		if (dm.getElementAt(x).toString().equals(this.LOADED_CONFIG)) {jComboBox1.setSelectedIndex(x); break; }
+	    }
+	}
+	
+    }//GEN-LAST:event_saveButtonActionPerformed
+    
+    private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
+	String config = jComboBox1.getModel().getSelectedItem().toString();
+	fileList.clear();
+	DefaultTableModel dtm = ((DefaultTableModel)pathList.getModel());
+	dtm.setNumRows(0);
+	dtm.fireTableStructureChanged();
+	if (config.equals("Create New Config")) {
+	    this.LOADED_CONFIG = "";
+	    this.LOADED_CONFIG_ID = 0;
+	}
+	else {
+	    try {
+		Config lConfig = Config.loadConfig(config);
+		this.LOADED_CONFIG = lConfig.CONFIG_NAME;
+		this.LOADED_CONFIG_ID = jComboBox1.getSelectedIndex();
+		logWhatCombo.setSelectedIndex(lConfig.LOG_METHOD);
+		failBehaviorCombo.setSelectedIndex(lConfig.FAILURE_METHOD);
+		backupTo.setText(lConfig.BACKUP_TO.getAbsolutePath());
+		for (BackupFile bf : lConfig.fileList) {
+		    ((DefaultTableModel)pathList.getModel()).addRow(bf.asArray());
+		    fileList.add(bf);
+		}
+	    } catch (IOException ex) {
+		JOptionPane.showMessageDialog(this, "An error occured while loading this config.", "Error", JOptionPane.ERROR_MESSAGE);
+	    }
+	}
+    }//GEN-LAST:event_jComboBox1ActionPerformed
+    
+    
+    public void updateConfigList() {
+	Object[] o = Config.loadConfigList();
+	Object[] f = new Object[o.length + 1];
+	f[0] = "Create New Config";
+	int i = 1;
+	for (Object a : o) {
+	    f[i] = a;
+	    i++;
+	}
+	
+	if (f.length > 1) {
+	    this.jComboBox1.setEnabled(true);
+	    this.jComboBox1.setModel(new DefaultComboBoxModel(f));
+	}
+    }
     
     private void showFileSelectionDialog(boolean foldersOnly) {
 	final JFileChooser fc = new JFileChooser();
@@ -373,7 +480,7 @@ public class ConfigGUI extends javax.swing.JDialog {
 	addToList(f, true);
     }
     
-        private void addToList(BackupFile f) {
+    private void addToList(BackupFile f) {
 	addToList(f, true);
     }
     
@@ -394,46 +501,12 @@ public class ConfigGUI extends javax.swing.JDialog {
 	dtm.addRow(data);
     }
     
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-	/* Set the Nimbus look and feel */
-	//<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-	/* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-	* For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
-	*/
-	try {
-	    for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-		if ("Nimbus".equals(info.getName())) {
-		    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-		    break;
-		}
-	    }
-	} catch (ClassNotFoundException ex) {
-	    java.util.logging.Logger.getLogger(ConfigGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	} catch (InstantiationException ex) {
-	    java.util.logging.Logger.getLogger(ConfigGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	} catch (IllegalAccessException ex) {
-	    java.util.logging.Logger.getLogger(ConfigGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	} catch (javax.swing.UnsupportedLookAndFeelException ex) {
-	    java.util.logging.Logger.getLogger(ConfigGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-	}
-	//</editor-fold>
-	
-	/* Create and display the form */
-	java.awt.EventQueue.invokeLater(new Runnable() {
-	    public void run() {
-		new ConfigGUI().setVisible(true);
-	    }
-	});
-    }
-    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton addCustomButton;
     private javax.swing.JButton addFileButton;
     private javax.swing.JButton addFolderButton;
     private javax.swing.JButton backupLocationSelect;
+    private javax.swing.JTextField backupTo;
     private javax.swing.JButton cancelButton;
     private javax.swing.JTextField customPath;
     private javax.swing.JMenuItem deleteEntry;
@@ -446,7 +519,6 @@ public class ConfigGUI extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JSeparator jSeparator1;
-    private javax.swing.JTextField jTextField2;
     private javax.swing.JComboBox logWhatCombo;
     private javax.swing.JTable pathList;
     private javax.swing.JPopupMenu pathListMenu;
